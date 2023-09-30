@@ -1,0 +1,34 @@
+from flask import Flask, Response
+import cv2
+
+app = Flask(__name__)
+
+# Öffne die Videodatei
+video_file = "video.mp4"
+video = cv2.VideoCapture(video_file)
+
+# Zielauflösung
+width = 640
+height = 480
+
+def generate():
+    while True:
+        success, frame = video.read()
+        if not success:
+            break
+
+        # Ändere die Größe des Frames
+        frame = cv2.resize(frame, (width, height))
+        
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+@app.route('/video')
+def video_stream():
+    return Response(generate(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
